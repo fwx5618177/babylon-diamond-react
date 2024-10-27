@@ -44,6 +44,8 @@ const BabylonComponent: React.FC = () => {
     camera.fov = 0.9;
     camera.wheelPrecision = 32;
     camera.attachControl(canvasRef.current, true);
+    camera.layerMask = 1;
+    camera.pinchPrecision = 0;
 
     scene.clearColor = new Color4(0, 0, 0, 1);
 

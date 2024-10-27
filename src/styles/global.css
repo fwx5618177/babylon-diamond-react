@@ -1,0 +1,24 @@
+:root,
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-family: 'Roboto', sans-serif;
+  /* 暗黑模式 */
+  background-color: #282c34;
+}
+
+/* 随着时间进行背景色的改变 */
+@media (prefers-color-scheme: light) {
+  #root {
+    background-color: #f0f0f0;
+  }
+}

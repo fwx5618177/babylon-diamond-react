@@ -1,33 +1,34 @@
-import { useRef, useEffect } from "react";
-import "@babylonjs/loaders";
+import React, { useEffect, useRef } from "react";
 import {
-  ArcRotateCamera,
-  Color3,
-  DirectionalLight,
   Engine,
   Scene,
-  SceneLoader,
+  ArcRotateCamera,
   Vector3,
+  Color4,
+  HemisphericLight,
+  StandardMaterial,
+  Color3,
+  SceneLoader,
 } from "@babylonjs/core";
+import "@babylonjs/loaders";
 import {
   AdvancedDynamicTexture,
-  ColorPicker,
-  Control,
   StackPanel,
   TextBlock,
+  ColorPicker,
+  Control,
 } from "@babylonjs/gui";
+import { PBRMaterial } from "@babylonjs/core/Materials";
 
-const DiamondScene = () => {
-  const canvasRef = useRef(null);
+const BabylonComponent: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const engine = new Engine(canvas, true);
+    if (!canvasRef.current) return;
 
-    // 场景初始化
+    const engine = new Engine(canvasRef.current, true);
     const scene = new Scene(engine);
 
-    // 相机设置
     const camera = new ArcRotateCamera(
       "arcCamera",
       7.199,
@@ -36,58 +37,107 @@ const DiamondScene = () => {
       new Vector3(0, 1, 0),
       scene
     );
-    camera.attachControl(canvas, true);
     camera.upperBetaLimit = 1.63;
     camera.lowerBetaLimit = 0;
     camera.upperRadiusLimit = 8.3;
     camera.lowerRadiusLimit = 3.5;
     camera.fov = 0.9;
     camera.wheelPrecision = 32;
+    camera.attachControl(canvasRef.current, true);
 
-    // 环境光设置
-    const light1 = new DirectionalLight("light", new Vector3(0, -1, 0), scene);
+    scene.clearColor = new Color4(0, 0, 0, 1);
+
+    const light1 = new HemisphericLight("light", new Vector3(0, 3, 0), scene);
     light1.intensity = 3;
+    const light2 = new HemisphericLight("light2", new Vector3(0, 15, 0), scene);
+    light2.intensity = 5;
 
-    // 加载场景模型
-    SceneLoader.ImportMesh(
-      "diamond",
+    // 加载 diamond.json 场景
+    SceneLoader.ImportMesh("", "/model/", "diamond.json", scene, (meshes) => {
+      const diamond = meshes.find((mesh) => mesh.name === "diamond");
+      if (diamond) {
+        const diamondMaterial = new StandardMaterial("diamondMaterial", scene);
+        diamondMaterial.diffuseColor = Color3.FromHexString("#ef7c50");
+        diamond.material = diamondMaterial;
+      }
+    });
+
+    // 加载 diamondInner.json 材质
+    SceneLoader.LoadAssetContainer(
       "/model/",
-      "diamond.json",
+      "diamondInner.json",
       scene,
-      (meshes) => {
-        meshes.forEach((mesh) => (mesh.layerMask = 1));
+      (container) => {
+        const diamondInner = scene.getMeshByName("diamondInner");
+        if (diamondInner) {
+          const diamondInnerMaterial = container.materials[0] as PBRMaterial;
+          diamondInnerMaterial.needDepthPrePass = true;
+          diamondInner.material = diamondInnerMaterial;
+        }
+      },
+      null,
+      (_, message, exception) => {
+        console.error("Failed to load diamondInner.json:", message, exception);
       }
     );
 
-    // 添加 UI 控件
-    const advancedTexture = AdvancedDynamicTexture.CreateFullscreenUI("UI");
-    const panel = new StackPanel();
-    panel.width = "200px";
-    panel.isVertical = true;
-    panel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-    panel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-    advancedTexture.addControl(panel);
+    // 加载 diamondOuter.json 材质
+    SceneLoader.LoadAssetContainer(
+      "/model/",
+      "diamondOuter.json",
+      scene,
+      (container) => {
+        const diamondOuter = scene.getMeshByName("diamondOuter");
+        if (!diamondOuter) return;
+        const diamondOuterMaterial = container.materials[0] as PBRMaterial;
+        diamondOuterMaterial.needDepthPrePass = true;
+        diamondOuter.material = diamondOuterMaterial;
+      }
+    );
 
-    // 颜色控制
-    const header = new TextBlock();
-    header.text = "Diamond Color";
-    header.color = "white";
-    header.height = "30px";
-    panel.addControl(header);
+    // 加载 redCloth.json 材质
+    SceneLoader.LoadAssetContainer(
+      "/model/",
+      "redCloth.json",
+      scene,
+      (container) => {
+        const cloth = scene.getMeshByName("Cloth");
+        if (!cloth) return;
+        const clothMaterial = container.materials[0] as PBRMaterial;
+        clothMaterial.backFaceCulling = false;
+        cloth.material = clothMaterial;
+      }
+    );
 
-    const colorPicker = new ColorPicker();
-    colorPicker.value = Color3.FromHexString("#ef7c50");
-    colorPicker.height = "150px";
-    colorPicker.width = "150px";
-    colorPicker.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    panel.addControl(colorPicker);
+    // UI设置
+    const ui = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
 
-    // 添加渲染循环
+    // Diamond Color Panel
+    const diamondColorPanel = new StackPanel();
+    diamondColorPanel.width = "200px";
+    diamondColorPanel.isVertical = true;
+    diamondColorPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    diamondColorPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
+    ui.addControl(diamondColorPanel);
+
+    const diamondColorText = new TextBlock();
+    diamondColorText.text = "Diamond Color";
+    diamondColorText.color = "White";
+    diamondColorText.height = "30px";
+    diamondColorPanel.addControl(diamondColorText);
+
+    const diamondColorPicker = new ColorPicker();
+    diamondColorPicker.value = Color3.FromHexString("#ef7c50");
+    diamondColorPicker.height = "150px";
+    diamondColorPicker.width = "150px";
+    diamondColorPicker.horizontalAlignment =
+      Control.HORIZONTAL_ALIGNMENT_CENTER;
+    diamondColorPanel.addControl(diamondColorPicker);
+
     engine.runRenderLoop(() => {
       scene.render();
     });
 
-    // 处理窗口大小改变事件
     window.addEventListener("resize", () => {
       engine.resize();
     });
@@ -100,4 +150,4 @@ const DiamondScene = () => {
   return <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} />;
 };
 
-export default DiamondScene;
+export default BabylonComponent;

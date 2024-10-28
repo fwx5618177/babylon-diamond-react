@@ -8,13 +8,12 @@ import {
   HemisphericLight,
   MeshBuilder,
   PBRMaterial,
-  Texture,
+  // Texture,
   RenderTargetTexture,
   DefaultRenderingPipeline,
   TransformNode,
   NodeMaterial,
   SceneLoader,
-  Mesh,
   InputBlock,
   Color3,
 } from "@babylonjs/core";
@@ -184,14 +183,14 @@ const BabylonComponent: React.FC = () => {
       // 设置 shadow 材质
       if (shadow) {
         const shadowMaterial = new ShadowOnlyMaterial("shadowMaterial", scene);
-        shadowMaterial.opacityTexture = new Texture(
-          "/shadow.png",
-          scene,
-          true,
-          true
-        );
-        shadowMaterial.diffuseColor = new Color3(0, 0, 0);
-        shadowMaterial.specularColor = new Color3(0, 0, 0);
+        // shadowMaterial.opacityTexture = new Texture(
+        //   "/shadow.png",
+        //   scene,
+        //   true,
+        //   true
+        // );
+        // shadowMaterial.diffuseColor = new Color3(0, 0, 0);
+        // shadowMaterial.specularColor = new Color3(0, 0, 0);
         shadow.material = shadowMaterial;
       }
 
@@ -217,12 +216,12 @@ const BabylonComponent: React.FC = () => {
             diamondColorBlock.value = diamondColorPicker.value.clone();
           }
 
-          const refractionBlock = diamondInnerMaterial.getBlockByName(
-            "RefractionBlock"
-          ) as InputBlock;
-          if (refractionBlock && refractionBlock.isInput) {
-            refractionBlock.texture = refractionTexture;
-          }
+          // const refractionBlock = diamondInnerMaterial.getBlockByName(
+          //   "RefractionBlock"
+          // ) as InputBlock;
+          // if (refractionBlock && refractionBlock.isInput) {
+          //   refractionBlock.texture = refractionTexture;
+          // }
 
           // 绑定颜色选择器事件
           diamondColorPicker.onValueChangedObservable.add((color) => {
@@ -256,12 +255,11 @@ const BabylonComponent: React.FC = () => {
             diamondColorBlock.value = diamondColorPicker.value.clone();
           }
 
-          const refractionBlock = diamondOuterMaterial.getBlockByName(
-            "RefractionBlock"
-          ) as InputBlock;
-          if (refractionBlock && refractionBlock.isInput) {
-            refractionBlock.texture = refractionTexture;
-          }
+          // const refractionBlock =
+          //   diamondOuterMaterial.getBlockByName("RefractionBlock");
+          // if (refractionBlock && refractionBlock.isInput) {
+          //   refractionBlock.texture = refractionTexture;
+          // }
 
           // 绑定颜色选择器事件
           diamondColorPicker.onValueChangedObservable.add((color) => {
@@ -347,17 +345,6 @@ const BabylonComponent: React.FC = () => {
       scene.onBeforeRenderObservable.add(() => {
         camera.alpha += 0.001;
       });
-
-      // 输出控制台信息
-      console.log(
-        "%cMade with %c" +
-          String.fromCharCode(10084) +
-          "%c for BabylonJS\n%cby ClickON",
-        "font-size:2rem; color:black; background:#404040; border-radius:4px 0 0 4px; padding-left:1rem",
-        "font-size:2rem; color:#ff4000; background:#404040;",
-        "font-size:2rem; color:black; background:#404040; border-radius:0 4px 4px 0; padding-right:1rem",
-        "font-size:0.8rem; color:black; padding:0.5rem 0 0.5rem 0"
-      );
     };
 
     // 调用异步加载函数

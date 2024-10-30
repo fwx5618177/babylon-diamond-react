@@ -8,7 +8,7 @@ import {
   HemisphericLight,
   MeshBuilder,
   PBRMaterial,
-  // Texture,
+  Texture,
   RenderTargetTexture,
   DefaultRenderingPipeline,
   TransformNode,
@@ -16,6 +16,9 @@ import {
   SceneLoader,
   InputBlock,
   Color3,
+  Effect,
+  ShaderStore,
+  Vector2,
 } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import {
@@ -26,6 +29,7 @@ import {
   Control,
 } from "@babylonjs/gui";
 import { ShadowOnlyMaterial } from "@babylonjs/materials";
+import "../shaders/shaders";
 
 const BabylonComponent: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -183,14 +187,14 @@ const BabylonComponent: React.FC = () => {
       // 设置 shadow 材质
       if (shadow) {
         const shadowMaterial = new ShadowOnlyMaterial("shadowMaterial", scene);
-        // shadowMaterial.opacityTexture = new Texture(
-        //   "/shadow.png",
-        //   scene,
-        //   true,
-        //   true
-        // );
-        // shadowMaterial.diffuseColor = new Color3(0, 0, 0);
-        // shadowMaterial.specularColor = new Color3(0, 0, 0);
+        shadowMaterial.opacityTexture = new Texture(
+          "/shadow.png",
+          scene,
+          true,
+          true
+        );
+        shadowMaterial.diffuseColor = new Color3(0, 0, 0);
+        shadowMaterial.specularColor = new Color3(0, 0, 0);
         shadow.material = shadowMaterial;
       }
 
@@ -216,12 +220,12 @@ const BabylonComponent: React.FC = () => {
             diamondColorBlock.value = diamondColorPicker.value.clone();
           }
 
-          // const refractionBlock = diamondInnerMaterial.getBlockByName(
-          //   "RefractionBlock"
-          // ) as InputBlock;
-          // if (refractionBlock && refractionBlock.isInput) {
-          //   refractionBlock.texture = refractionTexture;
-          // }
+          const refractionBlock = diamondInnerMaterial.getBlockByName(
+            "RefractionBlock"
+          ) as InputBlock;
+          if (refractionBlock && refractionBlock.isInput) {
+            refractionBlock.texture = refractionTexture;
+          }
 
           // 绑定颜色选择器事件
           diamondColorPicker.onValueChangedObservable.add((color) => {
@@ -255,11 +259,11 @@ const BabylonComponent: React.FC = () => {
             diamondColorBlock.value = diamondColorPicker.value.clone();
           }
 
-          // const refractionBlock =
-          //   diamondOuterMaterial.getBlockByName("RefractionBlock");
-          // if (refractionBlock && refractionBlock.isInput) {
-          //   refractionBlock.texture = refractionTexture;
-          // }
+          const refractionBlock =
+            diamondOuterMaterial.getBlockByName("RefractionBlock");
+          if (refractionBlock && refractionBlock.isInput) {
+            refractionBlock.texture = refractionTexture;
+          }
 
           // 绑定颜色选择器事件
           diamondColorPicker.onValueChangedObservable.add((color) => {
@@ -279,7 +283,6 @@ const BabylonComponent: React.FC = () => {
           "/model/redCloth.json",
           scene
         );
-        const cloth = scene.getMeshByID("Cloth");
         if (cloth) {
           clothMaterial.needDepthPrePass = true;
           clothMaterial.backFaceCulling = false;

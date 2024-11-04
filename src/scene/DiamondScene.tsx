@@ -16,9 +16,6 @@ import {
   SceneLoader,
   InputBlock,
   Color3,
-  Effect,
-  ShaderStore,
-  Vector2,
 } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import {

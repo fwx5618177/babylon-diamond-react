@@ -16,6 +16,7 @@ import {
   SceneLoader,
   InputBlock,
   Color3,
+  ReflectionProbe,
 } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import {
@@ -77,6 +78,10 @@ const BabylonComponent: React.FC = () => {
 
     const light2 = new HemisphericLight("light2", new Vector3(0, 15, 0), scene);
     light2.intensity = 5;
+
+    // 创建反射探针
+    const reflectionProbe = new ReflectionProbe("reflectionProbe", 512, scene);
+    reflectionProbe.position = new Vector3(0, 5, 0); // 设置位置
 
     // UI层设置
     const ui = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
@@ -159,6 +164,8 @@ const BabylonComponent: React.FC = () => {
       const sphere = MeshBuilder.CreateSphere("sphere", { diameter: 2 }, scene);
       sphere.position = diamond?.position.clone() || new Vector3(0, 0, 0);
       sphere.visibility = 1e-5;
+
+      reflectionProbe.renderList.push(sphere);
 
       const sphereMaterial = new PBRMaterial("sphereMaterial", scene);
       sphere.material = sphereMaterial;

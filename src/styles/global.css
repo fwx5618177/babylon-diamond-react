@@ -1,3 +1,22 @@
+/**
+ * ============================================================================
+ * global.css - 全局样式
+ * ============================================================================
+ * 
+ * 本文件定义应用的全局 CSS 样式，主要功能：
+ * 1. 重置默认样式（实现 CSS Reset）
+ * 2. 设置全屏布局（Canvas 占满屏幕）
+ * 3. 支持暗黑模式/浅色模式自动切换
+ * 
+ * 为什么需要全屏布局？
+ * - 3D 渲染场景需要占据整个视口
+ * - 避免默认 margin/padding 影响布局
+ * - Flexbox 居中简化 Canvas 定位
+ * 
+ * ============================================================================
+ */
+
+/* CSS Reset: 移除浏览器默认样式 */
 :root,
 body {
   margin: 0;
@@ -5,18 +24,26 @@ body {
   box-sizing: border-box;
 }
 
+/* React 根容器样式 */
 #root {
+  /* Flexbox 布局，用于居中 Canvas */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+
+  /* 占满整个视口高度 */
   height: 100vh;
+
+  /* 字体设置 */
   font-family: 'Roboto', sans-serif;
-  /* 暗黑模式 */
+
+  /* 默认暗黑模式背景色，与场景背景色协调 */
   background-color: #282c34;
 }
 
-/* 随着时间进行背景色的改变 */
+/* 系统浅色模式支持 */
+/* 当用户系统设置为浅色主题时，自动切换背景色 */
 @media (prefers-color-scheme: light) {
   #root {
     background-color: #f0f0f0;

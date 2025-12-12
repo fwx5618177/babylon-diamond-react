@@ -1,376 +1,230 @@
+/**
+ * 
+ * 
+ * 核心职责：
+ * 这是整个 3D 钻石渲染的核心组件，负责初始化和管理 Babylon.js 场景。
+ * 
+ * 渲染流程：
+ * 1. 初始化 Engine（WebGL 渲染引擎）
+ * 2. 创建 Scene（场景容器）
+ * 3. 设置相机和灯光
+ * 4. 创建 UI 控制面板
+ * 5. 异步加载 3D 模型资源
+ * 6. 配置材质和折射效果
+ * 7. 添加后处理效果
+ * 8. 启动渲染循环
+ * 
+ * 钻石渲染技术要点：
+ * - 使用 NodeMaterial（节点材质）实现复杂的着色效果
+ * - 通过 RenderTargetTexture（RTT）实现折射效果
+ * - 分层渲染：内层和外层分别使用不同材质
+ * - 后处理：色差、泛光、暗角效果增强真实感
+ * 
+ * ============================================================================
+ */
+
 import React, { useEffect, useRef } from "react";
 import {
   Engine,
   Scene,
-  ArcRotateCamera,
-  Vector3,
   Color4,
-  HemisphericLight,
-  MeshBuilder,
-  PBRMaterial,
-  Texture,
-  RenderTargetTexture,
-  DefaultRenderingPipeline,
   TransformNode,
-  NodeMaterial,
   SceneLoader,
-  InputBlock,
-  Color3,
-  ReflectionProbe,
+  PBRMaterial,
 } from "@babylonjs/core";
+// 导入 Babylon.js 加载器，支持加载 .babylon/.json 格式的 3D 模型
 import "@babylonjs/loaders";
-import {
-  AdvancedDynamicTexture,
-  StackPanel,
-  TextBlock,
-  ColorPicker,
-  Control,
-} from "@babylonjs/gui";
-import { ShadowOnlyMaterial } from "@babylonjs/materials";
-import "../shaders/shaders";
 
-const BabylonComponent: React.FC = () => {
+// 导入场景设置模块
+import { createCameras } from "./setup";
+import { createLights } from "./setup";
+import { createUI } from "./ui";
+import { createPostProcessing } from "./postprocess";
+import {
+  createRefractionSetup,
+  setupShadowMaterial,
+  loadDiamondInnerMaterial,
+  loadDiamondOuterMaterial,
+  loadClothMaterial,
+} from "./materials";
+
+/**
+ * DiamondScene 组件
+ * 
+ * 功能：
+ * - 创建并管理完整的 3D 钻石渲染场景
+ * - 处理 WebGL 上下文的生命周期
+ * - 响应窗口大小变化
+ * 
+ * 生命周期：
+ * - 挂载时：初始化引擎和场景
+ * - 卸载时：清理资源，释放 WebGL 上下文
+ */
+const DiamondScene: React.FC = () => {
+  // Canvas 元素的引用，用于 Babylon.js 引擎绑定
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    // 确保 Canvas 元素已挂载
     if (!canvasRef.current) return;
 
+    // ========================================
+    // 第一步：初始化渲染引擎
+    // ========================================
+    // Engine 是 Babylon.js 的核心，负责管理 WebGL 上下文
+    // 参数2 (true) 表示启用抗锯齿
     const engine = new Engine(canvasRef.current, true);
+    
+    // 创建场景，Scene 是所有 3D 对象的容器
     const scene = new Scene(engine);
 
-    // 创建主摄像机
-    const camera = new ArcRotateCamera(
-      "arcCamera",
-      7.199,
-      1.574,
-      6.4,
-      new Vector3(0, 1, 0),
-      scene
-    );
-    camera.upperBetaLimit = 1.63;
-    camera.lowerBetaLimit = 0;
-    camera.upperRadiusLimit = 8.3;
-    camera.lowerRadiusLimit = 3.5;
-    camera.fov = 0.9;
-    camera.wheelPrecision = 32;
-    camera.attachControl(canvasRef.current, true);
-    camera.layerMask = 1;
-    camera.pinchPrecision = 0;
-
-    // 创建UI摄像机
-    const uiCamera = new ArcRotateCamera(
-      "uiCamera",
-      0,
-      0,
-      0,
-      new Vector3(0, 1, 0),
-      scene
-    );
-    uiCamera.layerMask = 2;
-
-    scene.activeCameras = [camera, uiCamera];
-
+    // 设置场景背景色为纯黑色 (RGBA: 0,0,0,1)
     scene.clearColor = new Color4(0, 0, 0, 1);
 
-    // 添加光源
-    const light1 = new HemisphericLight("light1", new Vector3(0, 3, 0), scene);
-    light1.intensity = 3;
+    // ========================================
+    // 第二步：创建相机系统
+    // ========================================
+    // 返回主相机（用于渲染 3D 场景）和 UI 相机（用于渲染 GUI）
+    const { mainCamera } = createCameras(scene, canvasRef.current);
 
-    const light2 = new HemisphericLight("light2", new Vector3(0, 15, 0), scene);
-    light2.intensity = 5;
+    // ========================================
+    // 第三步：创建灯光系统
+    // ========================================
+    // 使用点光源照亮钻石，产生闪耀效果
+    createLights(scene);
 
-    // 创建反射探针
-    const reflectionProbe = new ReflectionProbe("reflectionProbe", 512, scene);
-    reflectionProbe.position = new Vector3(0, 5, 0); // 设置位置
+    // ========================================
+    // 第四步：创建 UI 控制面板
+    // ========================================
+    // 返回颜色选择器，用于实时调整钻石和环境颜色
+    const { diamondColorPicker, envColorPicker } = createUI(scene);
 
-    // UI层设置
-    const ui = AdvancedDynamicTexture.CreateFullscreenUI("UI", true, scene);
-    ui.layer.layerMask = 2;
-
-    // Diamond Color Panel
-    const diamondColorPanel = new StackPanel();
-    diamondColorPanel.width = "200px";
-    diamondColorPanel.isVertical = true;
-    diamondColorPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-    diamondColorPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-    ui.addControl(diamondColorPanel);
-
-    const diamondColorText = new TextBlock();
-    diamondColorText.text = "Diamond Color";
-    diamondColorText.color = "White";
-    diamondColorText.height = "30px";
-    diamondColorPanel.addControl(diamondColorText);
-
-    const diamondColorPicker = new ColorPicker();
-    diamondColorPicker.value = Color3.FromHexString("#ef7c50");
-    diamondColorPicker.height = "150px";
-    diamondColorPicker.width = "150px";
-    diamondColorPicker.horizontalAlignment =
-      Control.HORIZONTAL_ALIGNMENT_CENTER;
-    diamondColorPanel.addControl(diamondColorPicker);
-
-    // Environment Color Panel
-    const envColorPanel = new StackPanel();
-    envColorPanel.width = "200px";
-    envColorPanel.isVertical = true;
-    envColorPanel.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_RIGHT;
-    envColorPanel.verticalAlignment = Control.VERTICAL_ALIGNMENT_CENTER;
-    envColorPanel.paddingTop = "500px";
-    ui.addControl(envColorPanel);
-
-    const envColorText = new TextBlock();
-    envColorText.text = "Environment Color";
-    envColorText.color = "White";
-    envColorText.height = "30px";
-    envColorPanel.addControl(envColorText);
-
-    const envColorPicker = new ColorPicker();
-    envColorPicker.value = Color3.FromHexString("#000001");
-    envColorPicker.height = "150px";
-    envColorPicker.width = "150px";
-    envColorPicker.horizontalAlignment = Control.HORIZONTAL_ALIGNMENT_CENTER;
-    envColorPanel.addControl(envColorPicker);
-
-    // 创建资源根节点
+    // ========================================
+    // 第五步：创建场景层级结构
+    // ========================================
+    // TransformNode 作为所有模型的父节点，便于统一管理变换
     const sceneRoot = new TransformNode("DiamondSceneRoot", scene);
 
-    // 异步加载资源的函数
+    // ========================================
+    // 第六步：异步加载 3D 资源
+    // ========================================
     const loadAssetsAsync = async () => {
-      // 加载 diamond.json 场景
+      // 加载主场景模型文件 diamond.json
+      // 包含：钻石模型、布料、环境、阴影等网格
       const result = await SceneLoader.ImportMeshAsync(
-        "",
-        "/model/",
-        "diamond.json",
+        "",           // 空字符串表示加载所有网格
+        "/model/",    // 模型文件路径
+        "diamond.json", // 模型文件名
         scene
       );
 
+      // 将所有加载的网格挂载到场景根节点下
+      // layerMask = 1 表示这些网格由主相机渲染
       result.meshes.forEach((mesh) => {
         mesh.parent = sceneRoot;
         mesh.layerMask = 1;
       });
 
-      const diamond = scene.getMeshByID("diamond");
-      const cloth = scene.getMeshByID("Cloth");
-      const environment = scene.getMeshByID("environment");
-      const shadow = scene.getMeshByID("shadow");
+      // 获取场景中的关键网格对象
+      const diamond = scene.getMeshByID("diamond");       // 钻石主体
+      const cloth = scene.getMeshByID("Cloth");           // 展示台布料
+      const environment = scene.getMeshByID("environment"); // 环境背景
+      const shadow = scene.getMeshByID("shadow");         // 阴影平面
 
-      // 设置环境材质的 metallicF0Factor
+      // ========================================
+      // 第七步：配置材质
+      // ========================================
+      // 设置环境材质的金属度菲涅尔因子为 0
+      // 这使得环境表面呈现非金属质感
       const envMaterial = scene.getMaterialByID("envMaterial") as PBRMaterial;
       if (envMaterial) {
         envMaterial.metallicF0Factor = 0;
       }
 
-      // 创建一个不可见的球体，用于折射
-      const sphere = MeshBuilder.CreateSphere("sphere", { diameter: 2 }, scene);
-      sphere.position = diamond?.position.clone() || new Vector3(0, 0, 0);
-      sphere.visibility = 1e-5;
-
-      reflectionProbe.renderList.push(sphere);
-
-      const sphereMaterial = new PBRMaterial("sphereMaterial", scene);
-      sphere.material = sphereMaterial;
-
-      // 创建折射渲染目标
-      const refractionTexture = new RenderTargetTexture(
-        "refraction",
-        512,
+      // ========================================
+      // 第八步：创建折射效果
+      // ========================================
+      // 钻石的核心视觉效果：通过隐藏球体和 RTT 实现折射
+      // sphereMaterial 包含折射纹理，供钻石材质使用
+      const { sphereMaterial } = createRefractionSetup(
         scene,
-        true
+        mainCamera,
+        diamond,
+        cloth,
+        environment
       );
-      refractionTexture.renderList = [cloth, environment, sphere];
-      refractionTexture.lodGenerationScale = 0.5;
-      scene.customRenderTargets.push(refractionTexture);
 
-      sphereMaterial.refractionTexture = refractionTexture;
-      sphereMaterial.linkRefractionWithTransparency = true;
-      sphereMaterial.indexOfRefraction = 1.3;
-      sphereMaterial.alpha = 0;
-      sphereMaterial.roughness = 0.05;
-      sphereMaterial.metallic = 0;
+      // 设置阴影平面的材质（半透明阴影效果）
+      setupShadowMaterial(scene, shadow);
 
-      // 设置 shadow 材质
-      if (shadow) {
-        const shadowMaterial = new ShadowOnlyMaterial("shadowMaterial", scene);
-        shadowMaterial.opacityTexture = new Texture(
-          "/shadow.png",
+      // ========================================
+      // 第九步：加载钻石和布料材质
+      // ========================================
+      // 并行加载三个材质以提高加载效率
+      // - 钻石内层：处理内部折射
+      // - 钻石外层：处理表面反射和闪光
+      // - 布料：展示台的绒布材质
+      await Promise.all([
+        loadDiamondInnerMaterial(
           scene,
-          true,
-          true
-        );
-        shadowMaterial.diffuseColor = new Color3(0, 0, 0);
-        shadowMaterial.specularColor = new Color3(0, 0, 0);
-        shadow.material = shadowMaterial;
-      }
-
-      // 加载并设置 diamondInner 材质
-      try {
-        const diamondInnerMaterial = await NodeMaterial.ParseFromFileAsync(
-          "diamondMaterialInner",
-          "/model/diamondInner.json",
-          scene
-        );
-        const diamondInner = scene.getMeshByID("diamondInner");
-        if (diamondInner) {
-          diamondInnerMaterial.needDepthPrePass = true;
-          diamondInner.material = diamondInnerMaterial;
-          diamondInner.alphaIndex = 1.6;
-          diamondInner.parent = diamond;
-
-          // 设置材质属性
-          const diamondColorBlock = diamondInnerMaterial.getBlockByName(
-            "DiamondColor"
-          ) as InputBlock;
-          if (diamondColorBlock && diamondColorBlock.isInput) {
-            diamondColorBlock.value = diamondColorPicker.value.clone();
-          }
-
-          const refractionBlock = diamondInnerMaterial.getBlockByName(
-            "RefractionBlock"
-          ) as InputBlock;
-          if (refractionBlock && refractionBlock.isInput) {
-            refractionBlock.texture = refractionTexture;
-          }
-
-          // 绑定颜色选择器事件
-          diamondColorPicker.onValueChangedObservable.add((color) => {
-            if (diamondColorBlock && diamondColorBlock.isInput) {
-              diamondColorBlock.value = color.clone();
-            }
-          });
-        }
-      } catch (error) {
-        console.error("Failed to load diamondInner.json:", error);
-      }
-
-      // 加载并设置 diamondOuter 材质
-      try {
-        const diamondOuterMaterial = await NodeMaterial.ParseFromFileAsync(
-          "diamondMaterialOuter",
-          "/model/diamondOuter.json",
-          scene
-        );
-        const diamondOuter = scene.getMeshByID("diamondOuter");
-        if (diamondOuter) {
-          diamondOuterMaterial.needDepthPrePass = true;
-          diamondOuter.material = diamondOuterMaterial;
-          diamondOuter.parent = diamond;
-
-          // 设置材质属性
-          const diamondColorBlock = diamondOuterMaterial.getBlockByName(
-            "DiamondColor"
-          ) as InputBlock;
-          if (diamondColorBlock && diamondColorBlock.isInput) {
-            diamondColorBlock.value = diamondColorPicker.value.clone();
-          }
-
-          const refractionBlock =
-            diamondOuterMaterial.getBlockByName("RefractionBlock");
-          if (refractionBlock && refractionBlock.isInput) {
-            refractionBlock.texture = refractionTexture;
-          }
-
-          // 绑定颜色选择器事件
-          diamondColorPicker.onValueChangedObservable.add((color) => {
-            if (diamondColorBlock && diamondColorBlock.isInput) {
-              diamondColorBlock.value = color.clone();
-            }
-          });
-        }
-      } catch (error) {
-        console.error("Failed to load diamondOuter.json:", error);
-      }
-
-      // 加载并设置 Cloth 材质
-      try {
-        const clothMaterial = await NodeMaterial.ParseFromFileAsync(
-          "redCloth",
-          "/model/redCloth.json",
-          scene
-        );
-        if (cloth) {
-          clothMaterial.needDepthPrePass = true;
-          clothMaterial.backFaceCulling = false;
-          cloth.material = clothMaterial;
-
-          // 设置初始颜色
-          const baseColorBlock = clothMaterial.getBlockByName(
-            "baseColor"
-          ) as InputBlock;
-          if (baseColorBlock && baseColorBlock.isInput) {
-            baseColorBlock.value = envColorPicker.value.clone();
-          }
-
-          // 设置 specularIntensity
-          const pbrBlock = clothMaterial.getBlockByName("PBRMetallicRoughness");
-          if (
-            pbrBlock &&
-            "specularIntensity" in pbrBlock &&
-            typeof pbrBlock["specularIntensity"] === "number"
-          ) {
-            pbrBlock["specularIntensity"] = 0;
-          }
-
-          // 绑定颜色选择器事件
-          envColorPicker.onValueChangedObservable.add((color) => {
-            if (baseColorBlock && baseColorBlock.isInput) {
-              baseColorBlock.value = color.clone();
-            }
-            if (environment && environment.material) {
-              (environment.material as PBRMaterial).albedoColor = color;
-            }
-          });
-        }
-      } catch (error) {
-        console.error("Failed to load redCloth.json:", error);
-      }
-
-      // 设置环境的材质颜色
-      if (environment && environment.material) {
-        (environment.material as PBRMaterial).albedoColor =
-          envColorPicker.value.clone();
-      }
-
-      // 添加后期处理效果
-      const pipeline = new DefaultRenderingPipeline("diamondPP", true, scene, [
-        camera,
+          diamond,
+          sphereMaterial,
+          diamondColorPicker
+        ),
+        loadDiamondOuterMaterial(
+          scene,
+          diamond,
+          sphereMaterial,
+          diamondColorPicker
+        ),
+        loadClothMaterial(scene, cloth, environment, envColorPicker),
       ]);
-      pipeline.samples = 8;
-      pipeline.chromaticAberrationEnabled = true;
-      pipeline.chromaticAberration.aberrationAmount = 20;
-      pipeline.chromaticAberration.radialIntensity = 0.7;
-      pipeline.bloomEnabled = true;
-      pipeline.bloomThreshold = 0;
-      pipeline.bloomWeight = 2;
-      pipeline.bloomKernel = 3;
-      pipeline.bloomScale = 1;
-      pipeline.imageProcessingEnabled = true;
-      pipeline.imageProcessing.vignetteEnabled = true;
-      pipeline.imageProcessing.vignetteWeight = 2;
-      pipeline.imageProcessing.vignetteCameraFov = 1.25;
 
-      // 渲染循环中旋转摄像机
+      // ========================================
+      // 第十步：添加后处理效果
+      // ========================================
+      // 色差、泛光、暗角效果，增强视觉冲击力
+      createPostProcessing(scene, mainCamera);
+
+      // ========================================
+      // 第十一步：设置相机自动旋转
+      // ========================================
+      // 每帧增加 alpha 角度，实现 360 度自动旋转展示
       scene.onBeforeRenderObservable.add(() => {
-        camera.alpha += 0.001;
+        mainCamera.alpha += 0.001;
       });
     };
 
-    // 调用异步加载函数
+    // 启动异步加载
     loadAssetsAsync();
 
+    // ========================================
+    // 第十二步：启动渲染循环
+    // ========================================
+    // 每帧调用 scene.render() 更新画面
     engine.runRenderLoop(() => {
       scene.render();
     });
 
-    window.addEventListener("resize", () => {
-      engine.resize();
-    });
+    // ========================================
+    // 第十三步：响应式处理
+    // ========================================
+    // 监听窗口大小变化，调整渲染分辨率
+    const onResize = () => engine.resize();
+    window.addEventListener("resize", onResize);
 
+    // ========================================
+    // 清理函数：组件卸载时释放资源
+    // ========================================
     return () => {
+      window.removeEventListener("resize", onResize);
+      // 释放 WebGL 上下文和所有 GPU 资源
       engine.dispose();
     };
-  }, []);
+  }, []); // 空依赖数组：仅在组件挂载时执行一次
 
+  // 渲染全屏 Canvas 元素
   return <canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} />;
 };
 
-export default BabylonComponent;
+export default DiamondScene;

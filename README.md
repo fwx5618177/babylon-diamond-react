@@ -1,50 +1,61 @@
-# React + TypeScript + Vite
+# Babylon Diamond React
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[中文文档](./README_ZH.md)
 
-Currently, two official plugins are available:
+A 3D diamond rendering demo built with Babylon.js and React. Realistic refraction, reflection, and light dispersion effects.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+![Diamond Preview](./public/image.png)
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- Realistic refraction using RenderTargetTexture (RTT)
+- Dual-layer rendering for authentic diamond optics
+- Real-time color adjustment
+- Post-processing: chromatic aberration, bloom, vignette
+- Auto-rotation showcase
 
-- Configure the top-level `parserOptions` property like this:
+## Tech Stack
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+- React 18 + TypeScript + Vite
+- Babylon.js
+- pnpm
+
+## Project Structure
+
+```
+src/
+├── main.tsx
+├── App.tsx
+└── scene/
+    ├── DiamondScene.tsx    # Main scene
+    ├── setup/              # Camera & lights
+    ├── materials/          # Materials & refraction
+    ├── ui/                 # Color pickers
+    └── postprocess/        # Effects
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## Quick Start
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+```bash
+pnpm install
+pnpm dev
 ```
+
+## Build
+
+```bash
+pnpm build
+```
+
+## How It Works
+
+1. **Refraction**: Invisible helper sphere + RTT captures environment
+2. **Layered Materials**: Inner (refraction) + Outer (reflection)
+3. **NodeMaterial**: Custom shaders via JSON
+4. **Post-Processing**: Chromatic aberration + bloom + vignette
+
+## Controls
+
+- Mouse drag: Rotate
+- Scroll: Zoom
+- Color pickers: Adjust diamond/environment colors

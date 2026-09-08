@@ -24,16 +24,16 @@
  */
 
 import React, { useEffect, useRef } from "react";
-import {
-  Engine,
-  Scene,
-  Color4,
-  TransformNode,
-  SceneLoader,
-  PBRMaterial,
-} from "@babylonjs/core";
-// 导入 Babylon.js 加载器，支持加载 .babylon/.json 格式的 3D 模型
-import "@babylonjs/loaders";
+import { Engine } from "@babylonjs/core/Engines/engine.js";
+import { Scene } from "@babylonjs/core/scene.js";
+import { Color4 } from "@babylonjs/core/Maths/math.color.js";
+import { TransformNode } from "@babylonjs/core/Meshes/transformNode.js";
+import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader.js";
+import type { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial.js";
+import "@babylonjs/core/Loading/Plugins/babylonFileLoader.js";
+import "./materials/registerBlocks";
+import "./registerShaders";
+import assets from "../generated/assets.json";
 
 // 导入场景设置模块
 import { createCameras } from "./setup";
@@ -67,13 +67,29 @@ const DiamondScene: React.FC = () => {
   useEffect(() => {
     // 确保 Canvas 元素已挂载
     if (!canvasRef.current) return;
+    let disposed = false;
+    const status = document.getElementById("scene-status");
+    const showError = () => {
+      if (disposed || !status) return;
+      status.hidden = false;
+      status.setAttribute("role", "alert");
+      status.querySelector("span")!.textContent = "Unable to load the scene.";
+      status.querySelector("a")!.hidden = false;
+    };
 
     // ========================================
     // 第一步：初始化渲染引擎
     // ========================================
     // Engine 是 Babylon.js 的核心，负责管理 WebGL 上下文
     // 参数2 (true) 表示启用抗锯齿
-    const engine = new Engine(canvasRef.current, true);
+    let engine: Engine;
+    try {
+      engine = new Engine(canvasRef.current, true);
+    } catch (error) {
+      console.error("Failed to initialize WebGL:", error);
+      showError();
+      return;
+    }
     
     // 创建场景，Scene 是所有 3D 对象的容器
     const scene = new Scene(engine);
@@ -113,10 +129,13 @@ const DiamondScene: React.FC = () => {
       // 包含：钻石模型、布料、环境、阴影等网格
       const result = await SceneLoader.ImportMeshAsync(
         "",           // 空字符串表示加载所有网格
-        "/model/",    // 模型文件路径
-        "diamond.json", // 模型文件名
-        scene
+        "",
+        assets.model,
+        scene,
+        undefined,
+        ".babylon"
       );
+      if (disposed) return;
 
       // 将所有加载的网格挂载到场景根节点下
       // layerMask = 1 表示这些网格由主相机渲染
@@ -155,7 +174,7 @@ const DiamondScene: React.FC = () => {
       );
 
       // 设置阴影平面的材质（半透明阴影效果）
-      setupShadowMaterial(scene, shadow);
+      setupShadowMaterial(scene, shadow, assets.shadow);
 
       // ========================================
       // 第九步：加载钻石和布料材质
@@ -169,22 +188,36 @@ const DiamondScene: React.FC = () => {
           scene,
           diamond,
           sphereMaterial,
-          diamondColorPicker
+          diamondColorPicker,
+          assets.diamondInner
         ),
         loadDiamondOuterMaterial(
           scene,
           diamond,
           sphereMaterial,
-          diamondColorPicker
+          diamondColorPicker,
+          assets.diamondOuter
         ),
-        loadClothMaterial(scene, cloth, environment, envColorPicker),
+        loadClothMaterial(scene, cloth, environment, envColorPicker, assets.redCloth),
       ]);
+      if (disposed) return;
 
       // ========================================
       // 第十步：添加后处理效果
       // ========================================
       // 色差、泛光、暗角效果，增强视觉冲击力
       createPostProcessing(scene, mainCamera);
+      await scene.whenReadyAsync(true);
+      if (disposed) return;
+      if (scene.textures.some((texture) => texture.loadingError)) {
+        throw new Error("A scene texture failed to load");
+      }
+      scene.onAfterRenderObservable.addOnce(() => {
+        if (disposed) return;
+        performance.mark("diamond-ready");
+        if (status) status.hidden = true;
+        window.clearTimeout(loadingTimeout);
+      });
 
       // ========================================
       // 第十一步：设置相机自动旋转
@@ -196,7 +229,13 @@ const DiamondScene: React.FC = () => {
     };
 
     // 启动异步加载
-    loadAssetsAsync();
+    const loadingTimeout = window.setTimeout(showError, 45000);
+    loadAssetsAsync().catch((error) => {
+      if (disposed) return;
+      window.clearTimeout(loadingTimeout);
+      console.error("Failed to load the diamond scene:", error);
+      showError();
+    });
 
     // ========================================
     // 第十二步：启动渲染循环
@@ -217,6 +256,8 @@ const DiamondScene: React.FC = () => {
     // 清理函数：组件卸载时释放资源
     // ========================================
     return () => {
+      disposed = true;
+      window.clearTimeout(loadingTimeout);
       window.removeEventListener("resize", onResize);
       // 释放 WebGL 上下文和所有 GPU 资源
       engine.dispose();

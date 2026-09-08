@@ -1,0 +1,19 @@
+// Keep first-frame WebGL shaders in the entry bundle instead of a late request waterfall.
+import "@babylonjs/core/Shaders/layer.vertex.js";
+import "@babylonjs/core/Shaders/layer.fragment.js";
+import "@babylonjs/core/Shaders/default.vertex.js";
+import "@babylonjs/core/Shaders/default.fragment.js";
+import "@babylonjs/core/Shaders/pbr.vertex.js";
+import "@babylonjs/core/Shaders/pbr.fragment.js";
+import "@babylonjs/core/Shaders/rgbdDecode.fragment.js";
+import "@babylonjs/core/Shaders/rgbdEncode.fragment.js";
+import "@babylonjs/core/Shaders/postprocess.vertex.js";
+import "@babylonjs/core/Shaders/kernelBlur.vertex.js";
+import "@babylonjs/core/Shaders/kernelBlur.fragment.js";
+import "@babylonjs/core/Shaders/imageProcessing.fragment.js";
+import "@babylonjs/core/Shaders/depthOfFieldMerge.fragment.js";
+import "@babylonjs/core/Shaders/circleOfConfusion.fragment.js";
+import "@babylonjs/core/Shaders/extractHighlights.fragment.js";
+import "@babylonjs/core/Shaders/bloomMerge.fragment.js";
+import "@babylonjs/core/Shaders/chromaticAberration.fragment.js";
+import "@babylonjs/core/Shaders/grain.fragment.js";

@@ -30,11 +30,9 @@
  * ============================================================================
  */
 
-import {
-  ArcRotateCamera,
-  DefaultRenderingPipeline,
-  Scene,
-} from "@babylonjs/core";
+import type { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera.js";
+import { DefaultRenderingPipeline } from "@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/defaultRenderingPipeline.js";
+import type { Scene } from "@babylonjs/core/scene.js";
 
 /**
  * 创建并配置后处理渲染管线

@@ -1,0 +1,22 @@
+// NodeMaterial resolves serialized classes by name, so these imports must retain their side effects.
+import "@babylonjs/core/Materials/Node/Blocks/addBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/colorMergerBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/colorSplitterBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/divideBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/Fragment/fragmentOutputBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/fresnelBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/gradientBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/Input/inputBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/lerpBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/multiplyBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/oneMinusBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/PBR/pbrMetallicRoughnessBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/Fragment/perturbNormalBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/Dual/reflectionTextureBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/refractBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/PBR/refractionBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/PBR/subSurfaceBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/Dual/textureBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/transformBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/Vertex/vertexOutputBlock.js";
+import "@babylonjs/core/Materials/Node/Blocks/viewDirectionBlock.js";

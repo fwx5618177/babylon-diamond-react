@@ -21,7 +21,10 @@
  * ============================================================================
  */
 
-import { ArcRotateCamera, FreeCamera, Scene, Vector3 } from "@babylonjs/core";
+import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera.js";
+import { FreeCamera } from "@babylonjs/core/Cameras/freeCamera.js";
+import type { Scene } from "@babylonjs/core/scene.js";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
 
 /**
  * 相机设置返回值接口

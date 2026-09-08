@@ -2,12 +2,31 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" href="data:," />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <title>Diamond</title>
+    <style>
+      #scene-status { position: fixed; inset: 0; z-index: 10; display: grid; place-content: center; gap: 12px; background: #000; color: #ddd; font: 14px system-ui, sans-serif; text-align: center; }
+      #scene-status[hidden] { display: none; }
+      #scene-status a { color: #9ac5ff; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <div id="scene-status" role="status" aria-live="polite">
+      <span>Loading diamond...</span>
+      <a href="/" hidden>Retry</a>
+    </div>
+    <script>
+      window.addEventListener("error", function (event) {
+        if (!(event.target instanceof HTMLScriptElement)) return;
+        var status = document.getElementById("scene-status");
+        status.hidden = false;
+        status.setAttribute("role", "alert");
+        status.querySelector("span").textContent = "Unable to load the scene.";
+        status.querySelector("a").hidden = false;
+      }, true);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

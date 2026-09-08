@@ -30,21 +30,19 @@
  * ============================================================================
  */
 
-import {
-  AbstractMesh,
-  ArcRotateCamera,
-  Color3,
-  InputBlock,
-  MeshBuilder,
-  NodeMaterial,
-  PBRMaterial,
-  RenderTargetTexture,
-  Scene,
-  StandardMaterial,
-  Texture,
-  Vector3,
-} from "@babylonjs/core";
-import { ColorPicker } from "@babylonjs/gui";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh.js";
+import type { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera.js";
+import { Color3 } from "@babylonjs/core/Maths/math.color.js";
+import { InputBlock } from "@babylonjs/core/Materials/Node/Blocks/Input/inputBlock.js";
+import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder.js";
+import { NodeMaterial } from "@babylonjs/core/Materials/Node/nodeMaterial.js";
+import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial.js";
+import { RenderTargetTexture } from "@babylonjs/core/Materials/Textures/renderTargetTexture.js";
+import type { Scene } from "@babylonjs/core/scene.js";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial.js";
+import { Texture } from "@babylonjs/core/Materials/Textures/texture.js";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
+import type { ColorPicker } from "@babylonjs/gui/2D/controls/colorpicker.js";
 
 /**
  * 材质上下文接口
@@ -88,7 +86,7 @@ export function createRefractionSetup(
   // ========================================
   // 这个球体是不可见的，仅用于承载折射材质
   // 钻石材质会采样这个球体的折射效果
-  const sphere = MeshBuilder.CreateSphere("sphere", { diameter: 2 }, scene);
+  const sphere = CreateSphere("sphere", { diameter: 2 }, scene);
   // 将球体放置在钻石位置
   sphere.position = diamond?.position.clone() || new Vector3(0, 0, 0);
   // 设置极小的可见度，使其几乎不可见但仍参与渲染
@@ -114,8 +112,8 @@ export function createRefractionSetup(
   refractionTexture.activeCamera = camera;
   
   // 指定哪些网格会被渲染到这个纹理
-  // 只包含布料、环境和辅助球体，不包含钻石本身
-  refractionTexture.renderList = [cloth, environment, sphere].filter(
+  // 只渲染布料和环境；辅助球体会采样此纹理，不能同时写入同一渲染目标。
+  refractionTexture.renderList = [cloth, environment].filter(
     Boolean
   ) as AbstractMesh[];
   
@@ -164,7 +162,8 @@ export function createRefractionSetup(
  */
 export function setupShadowMaterial(
   scene: Scene,
-  shadow: AbstractMesh | null
+  shadow: AbstractMesh | null,
+  textureUrl: string
 ): void {
   if (!shadow) return;
 
@@ -173,7 +172,7 @@ export function setupShadowMaterial(
   
   // 使用透明度纹理实现柔和的阴影边缘
   // 纹理中白色部分完全可见，黑色部分完全透明
-  shadowMaterial.opacityTexture = new Texture("/shadow.png", scene, true, true);
+  shadowMaterial.opacityTexture = new Texture(textureUrl, scene, true, true);
   
   // 漫反射颜色设为黑色，使阴影呈现暗色
   shadowMaterial.diffuseColor = new Color3(0, 0, 0);
@@ -211,16 +210,18 @@ export async function loadDiamondInnerMaterial(
   scene: Scene,
   diamond: AbstractMesh | null,
   sphereMaterial: PBRMaterial,
-  diamondColorPicker: ColorPicker
+  diamondColorPicker: ColorPicker,
+  materialUrl: string
 ): Promise<void> {
   try {
     // 从 JSON 文件异步加载 NodeMaterial
     // JSON 文件由 Babylon.js Node Material Editor 生成
     const material = await NodeMaterial.ParseFromFileAsync(
       "diamondMaterialInner",
-      "/model/diamondInner.json",
+      materialUrl,
       scene
     );
+    if (scene.isDisposed) return;
     
     const diamondInner = scene.getMeshByID("diamondInner");
     if (!diamondInner) return;
@@ -271,7 +272,7 @@ export async function loadDiamondInnerMaterial(
       }
     });
   } catch (error) {
-    console.error("Failed to load diamondInner.json:", error);
+    if (!scene.isDisposed) throw error;
   }
 }
 
@@ -297,15 +298,17 @@ export async function loadDiamondOuterMaterial(
   scene: Scene,
   diamond: AbstractMesh | null,
   sphereMaterial: PBRMaterial,
-  diamondColorPicker: ColorPicker
+  diamondColorPicker: ColorPicker,
+  materialUrl: string
 ): Promise<void> {
   try {
     // 加载钻石外层材质（处理表面效果）
     const material = await NodeMaterial.ParseFromFileAsync(
       "diamondMaterialOuter",
-      "/model/diamondOuter.json",
+      materialUrl,
       scene
     );
+    if (scene.isDisposed) return;
     
     const diamondOuter = scene.getMeshByID("diamondOuter");
     if (!diamondOuter) return;
@@ -341,7 +344,7 @@ export async function loadDiamondOuterMaterial(
       }
     });
   } catch (error) {
-    console.error("Failed to load diamondOuter.json:", error);
+    if (!scene.isDisposed) throw error;
   }
 }
 
@@ -372,7 +375,8 @@ export async function loadClothMaterial(
   scene: Scene,
   cloth: AbstractMesh | null,
   environment: AbstractMesh | null,
-  envColorPicker: ColorPicker
+  envColorPicker: ColorPicker,
+  materialUrl: string
 ): Promise<void> {
   if (!cloth) return;
 
@@ -380,9 +384,10 @@ export async function loadClothMaterial(
     // 加载布料材质（redCloth 为红色绒布质感）
     const material = await NodeMaterial.ParseFromFileAsync(
       "redCloth",
-      "/model/redCloth.json",
+      materialUrl,
       scene
     );
+    if (scene.isDisposed) return;
 
     // 禁用背面剔除，确保布料两面都可见
     // 这对于从不同角度观看场景很重要
@@ -420,12 +425,8 @@ export async function loadClothMaterial(
     // ========================================
     // 强制编译材质着色器，避免首次渲染时的卡顿
     // 预编译在后台完成，不影响加载体验
-    try {
-      await material.forceCompilationAsync(cloth);
-    } catch {
-      // 忽略预编译失败，不影响正常渲染
-    }
+    await material.forceCompilationAsync(cloth);
   } catch (error) {
-    console.error("Failed to load redCloth.json:", error);
+    if (!scene.isDisposed) throw error;
   }
 }

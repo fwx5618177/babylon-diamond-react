@@ -21,7 +21,9 @@
  * ============================================================================
  */
 
-import { PointLight, Scene, Vector3 } from "@babylonjs/core";
+import { PointLight } from "@babylonjs/core/Lights/pointLight.js";
+import type { Scene } from "@babylonjs/core/scene.js";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector.js";
 
 /**
  * 灯光设置返回值接口

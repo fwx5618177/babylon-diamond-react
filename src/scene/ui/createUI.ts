@@ -30,14 +30,13 @@
  * ============================================================================
  */
 
-import {
-  AdvancedDynamicTexture,
-  ColorPicker,
-  Control,
-  StackPanel,
-  TextBlock,
-} from "@babylonjs/gui";
-import { Color3, Scene } from "@babylonjs/core";
+import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture.js";
+import { ColorPicker } from "@babylonjs/gui/2D/controls/colorpicker.js";
+import { Control } from "@babylonjs/gui/2D/controls/control.js";
+import { StackPanel } from "@babylonjs/gui/2D/controls/stackPanel.js";
+import { TextBlock } from "@babylonjs/gui/2D/controls/textBlock.js";
+import { Color3 } from "@babylonjs/core/Maths/math.color.js";
+import type { Scene } from "@babylonjs/core/scene.js";
 
 /**
  * UI 设置返回值接口

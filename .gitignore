@@ -25,3 +25,6 @@ dist-ssr
 .npmrc
 
 tsconfig.tsbuildinfo
+generated/
+src/generated/
+test-results/
